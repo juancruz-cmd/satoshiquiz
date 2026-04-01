@@ -307,12 +307,17 @@ const DEFAULT_QS = [
 
 // ── FIREBASE ──
 function initFirebase() {
-  const raw = localStorage.getItem('sq_fb');
   const el = document.getElementById('fb-status');
-  if (!raw) { el.textContent='⚠️ Firebase no configurado — tocá ⚙️'; el.style.color='var(--warn)'; return; }
   try {
-    const cfg = JSON.parse(raw);
-    if (!cfg.databaseURL) throw new Error('Falta databaseURL');
+    const cfg = {
+      apiKey: "AIzaSyACywh4OkXJys-GfMo2pBwdixPgqa3lVrs",
+      authDomain: "satoshiquiz-d2f93.firebaseapp.com",
+      databaseURL: "https://satoshiquiz-d2f93-default-rtdb.firebaseio.com",
+      projectId: "satoshiquiz-d2f93",
+      storageBucket: "satoshiquiz-d2f93.firebasestorage.app",
+      messagingSenderId: "1079303600100",
+      appId: "1:1079303600100:web:538e6bf420161f397e39f1"
+    };
     if (!firebase.apps.length) firebase.initializeApp(cfg);
     G.db = firebase.database();
     el.textContent='🟢 Firebase conectado'; el.style.color='var(--teal)';
