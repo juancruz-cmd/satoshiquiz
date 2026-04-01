@@ -11,7 +11,10 @@
 <style>
 :root{--bg:#0d1533;--blue:#1138d7;--teal:#51ebc0;--white:#fff;--card:#1a2554;--card2:#1e2d6b;--danger:#e94560;--warn:#ffb74d;--ok:#4caf50;--r:12px;--font:'Segoe UI',system-ui,sans-serif;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:linear-gradient(135deg,#0d1533 0%,#0f1e4a 30%,#1138d7 60%,#0a2a5e 80%,#0d1533 100%);background-attachment:fixed;color:var(--white);font-family:var(--font);min-height:100vh;}
+body{background:var(--bg);color:var(--white);font-family:var(--font);min-height:100vh;position:relative;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 20% 30%,#1138d7 0%,transparent 50%),radial-gradient(ellipse at 80% 70%,#0a2a5e 0%,transparent 50%),radial-gradient(ellipse at 50% 50%,#0f1e4a 0%,transparent 60%),linear-gradient(135deg,#0d1533,#0a1840);animation:bgwave 18s ease-in-out infinite alternate;z-index:0;pointer-events:none;}
+@keyframes bgwave{0%{transform:translate(0,0) scale(1);}25%{transform:translate(-3%,2%) scale(1.04);}50%{transform:translate(2%,-3%) scale(1.02);}75%{transform:translate(-2%,3%) scale(1.05);}100%{transform:translate(3%,-2%) scale(1.03);}}
+.screen{position:relative;z-index:1;}
 .screen{display:none;min-height:100vh;padding:20px;flex-direction:column;align-items:center;}
 .screen.active{display:flex;}
 .logo{margin-bottom:8px;text-align:center;}
@@ -27,10 +30,11 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
 .btn:hover{opacity:.88;transform:translateY(-1px);}
 .btn:active{transform:translateY(0);}
 .btn:disabled{opacity:.4;cursor:default;transform:none;}
-.btn-primary{background:var(--blue);color:var(--white);}
 .btn-teal{background:var(--teal);color:#0d1533;}
 .btn-danger{background:var(--danger);color:var(--white);}
-.btn-outline{background:transparent;border:2px solid var(--teal);color:var(--teal);}
+.btn-outline{background:rgba(255,255,255,0.08);border:2px solid var(--white);color:var(--white);}
+.btn-outline:hover{background:rgba(255,255,255,0.15);}
+.btn-primary{background:rgba(17,56,215,0.9);color:var(--white);border:1px solid rgba(255,255,255,0.2);}
 .btn-sm{padding:6px 13px;font-size:.8rem;}
 .btn-full{width:100%;max-width:560px;}
 .btn-group{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;width:100%;max-width:560px;}
