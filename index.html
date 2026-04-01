@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>SatoshiQuiz</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -59,7 +60,19 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
 .srank{font-size:1.1rem;font-weight:900;width:30px;text-align:center;}
 .sname{flex:1;font-weight:600;}
 .spts{font-size:1rem;font-weight:800;color:var(--teal);}
-.gold{color:#ffd700;}.silver{color:#c0c0c0;}.bronze{color:#cd7f32;}
+.logo{font-size:0;margin-bottom:4px;}
+.logo img{height:36px;object-fit:contain;}
+.logo-sm img{height:26px;object-fit:contain;}
+/* PODIO */
+.podio{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin:16px 0 24px;}
+.podio-item{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.podio-avatar{font-size:2rem;}
+.podio-name{font-size:.78rem;font-weight:700;text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.podio-pts{font-size:.72rem;color:#8896cc;}
+.podio-block{border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;width:80px;}
+.podio-1{background:linear-gradient(180deg,#ffd700,#b8860b);height:100px;}
+.podio-2{background:linear-gradient(180deg,#c0c0c0,#808080);height:75px;}
+.podio-3{background:linear-gradient(180deg,#cd7f32,#8b4513);height:55px;}
 .qitem{background:#0f163a;border-radius:8px;padding:12px;border:1.5px solid #2a3a7c;margin-bottom:8px;}
 .qitem-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
 .qitem-title{font-size:.86rem;font-weight:600;}
@@ -88,7 +101,7 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
 
 <!-- LANDING -->
 <div id="s-landing" class="screen active">
-  <div class="logo">Satoshi<span>Quiz</span></div>
+  <div class="logo"><img src="https://www.satoshitango.com/img/logo-invert.svg" alt="Satoshi Tango"/></div>
   <div class="sub">Trivia cripto en vivo</div>
   <div id="fb-status">⏳ Iniciando Firebase…</div>
   <div class="card" style="max-width:400px;text-align:center;">
@@ -103,7 +116,7 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
 
 <!-- HOST SETUP -->
 <div id="s-setup" class="screen">
-  <div class="logo">Satoshi<span>Quiz</span> <span style="font-size:.72rem;color:#8896cc;font-weight:400;">Host</span></div>
+  <div class="logo logo-sm"><img src="https://www.satoshitango.com/img/logo-invert.svg" alt="Satoshi Tango"/></div>
   <div class="tabs">
     <button class="tab active" id="tab-q-btn" onclick="switchTab('q')">📝 Preguntas</button>
     <button class="tab" id="tab-s-btn" onclick="switchTab('s')">⚙️ Ajustes</button>
@@ -130,7 +143,7 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
 
 <!-- HOST LOBBY -->
 <div id="s-lobby" class="screen">
-  <div class="logo">Satoshi<span>Quiz</span></div>
+  <div class="logo logo-sm"><img src="https://www.satoshitango.com/img/logo-invert.svg" alt="Satoshi Tango"/></div>
   <div class="sub">Compartí el código o escaneá el QR</div>
   <div class="card" style="max-width:420px;text-align:center;">
     <div style="font-size:.8rem;color:#8896cc;margin-bottom:2px;">Código de sala</div>
@@ -153,7 +166,7 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
 
 <!-- HOST QUESTION -->
 <div id="s-hq" class="screen">
-  <div class="logo" style="margin-bottom:2px;">Satoshi<span>Quiz</span></div>
+  <div class="logo logo-sm"><img src="https://www.satoshitango.com/img/logo-invert.svg" alt="Satoshi Tango"/></div>
   <div class="timer-wrap">
     <div class="timer-num" id="h-tnum">10</div>
     <div class="timer-bg"><div class="timer-bar" id="h-tbar" style="width:100%"></div></div>
@@ -193,7 +206,7 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
 
 <!-- PLAYER JOIN -->
 <div id="s-join" class="screen">
-  <div class="logo">Satoshi<span>Quiz</span></div>
+  <div class="logo"><img src="https://www.satoshitango.com/img/logo-invert.svg" alt="Satoshi Tango"/></div>
   <div class="sub">Ingresá el código de sala</div>
   <div style="display:flex;flex-direction:column;gap:11px;width:100%;max-width:360px;">
     <input id="j-code" placeholder="Código (ej: ABC123)" maxlength="8"
@@ -306,7 +319,46 @@ const DEFAULT_QS = [
   {text:"¿Qué tipo de activo es USDT?",options:["Memecoin","Stablecoin","Token de gobernanza","NFT"],correct:1,points:1000},
 ];
 
-// ── FIREBASE ──
+// ── SONIDOS ──
+function beep(type){
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    if(type==='correct'){ o.frequency.setValueAtTime(520,ctx.currentTime); o.frequency.setValueAtTime(660,ctx.currentTime+0.1); g.gain.setValueAtTime(0.3,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4); o.start(); o.stop(ctx.currentTime+0.4); }
+    if(type==='wrong'){ o.type='sawtooth'; o.frequency.setValueAtTime(220,ctx.currentTime); g.gain.setValueAtTime(0.2,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3); o.start(); o.stop(ctx.currentTime+0.3); }
+    if(type==='tick'){ o.frequency.setValueAtTime(880,ctx.currentTime); g.gain.setValueAtTime(0.05,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.05); o.start(); o.stop(ctx.currentTime+0.05); }
+  } catch(e){}
+}
+
+// ── CONFETTI ──
+function launchConfetti(){
+  if(typeof confetti==='undefined') return;
+  const colors=['#51ebc0','#1138d7','#ffd700','#ffffff','#ffb74d'];
+  confetti({particleCount:120,spread:80,origin:{y:0.6},colors});
+  setTimeout(()=>confetti({particleCount:60,spread:120,origin:{y:0.5},colors}),400);
+}
+
+// ── PODIO ──
+function renderPodio(sorted){
+  const order=[1,0,2]; // plata, oro, bronce
+  const blocks=['podio-2','podio-1','podio-3'];
+  const medals=['🥈','🥇','🥉'];
+  const avatars=['🦈','🦊','🐻','🦁','🐯','🦅','🐺','🦋'];
+  return `<div class="podio">${order.map((pos,i)=>{
+    const p=sorted[pos];
+    if(!p) return '';
+    return `<div class="podio-item">
+      <div class="podio-avatar">${avatars[pos]||'🎮'}</div>
+      <div class="podio-name">${p.name}</div>
+      <div class="podio-pts">${p.score||0} pts</div>
+      <div class="podio-block ${blocks[i]}">${medals[i]}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+
 function initFirebase() {
   const el = document.getElementById('fb-status');
   try {
@@ -667,6 +719,7 @@ function playerFinal(players){
       <div class="sname">${p.name}</div><div class="spts">${p.score||0} pts</div>
     </div>`).join('');
   show('s-pfinal');
+  if(rank===1) launchConfetti();
 }
 
 // ── BOOT ──
