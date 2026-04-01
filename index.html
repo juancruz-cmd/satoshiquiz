@@ -538,15 +538,18 @@ function exportCSV(){
 }
 
 // ── PLAYER ──
+let lastQIdx = -1;
+
 function playerJoin(){
   const code=document.getElementById('j-code').value.trim().toUpperCase();
   const name=document.getElementById('j-name').value.trim();
   if(!code){alert('Ingresá el código');return;}
   if(!name){alert('Ingresá tu nombre');return;}
   if(!G.db){alert('Firebase no conectado.');return;}
-  G.roomCode=code;G.myName=name;
+  G.roomCode=code; G.myName=name;
   G.myId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-  G.myScore=0;G.myAnswered=false;
+  G.myScore=0; G.myAnswered=false; lastQIdx=-1;
+
   dbr(`rooms/${code}`).once('value').then(snap=>{
     if(!snap.exists()){alert('Sala no encontrada.');return;}
     const room=snap.val();
@@ -556,34 +559,44 @@ function playerJoin(){
     document.getElementById('pw-name').textContent=name;
     document.getElementById('pw-room').textContent=code;
     show('s-pwait');
-    // Listen game state
-    dbr(`rooms/${code}`).on('value',snap=>{
-      if(!snap.exists())return;
-      const r=snap.val();
-      if(r.status==='question'&&typeof r.currentQ==='number'&&r.currentQ>=0){
-        const q=(r.questions||[])[r.currentQ];
-        if(q && r.currentQ !== lastQIdx){
-          G.myAnswered=false;
-          G.timePerQ=r.timePerQ||10;
-          playerShowQ(q,r.currentQ,r.totalQ||1);
-        }
-      }
-      if(r.status==='final'){
-        playerFinal(r.players||{});
+
+    // Escuchar cambios de currentQ solamente
+    dbr(`rooms/${code}/currentQ`).on('value', snap=>{
+      const qIdx = snap.val();
+      if(qIdx === null || qIdx < 0) return;
+      if(qIdx === lastQIdx) return; // misma pregunta, ignorar
+      // Es una pregunta nueva: resetear estado
+      lastQIdx = qIdx;
+      G.myAnswered = false;
+      dbr(`rooms/${code}`).once('value').then(rSnap=>{
+        const r = rSnap.val();
+        if(!r || r.status !== 'question') return;
+        const q = (r.questions||[])[qIdx];
+        if(!q) return;
+        G.timePerQ = r.timePerQ||10;
+        playerShowQ(q, qIdx, r.totalQ||1);
+      });
+    });
+
+    // Escuchar final
+    dbr(`rooms/${code}/status`).on('value', snap=>{
+      if(snap.val()==='final'){
+        dbr(`rooms/${code}/players`).once('value').then(pSnap=>{
+          playerFinal(pSnap.val()||{});
+        });
       }
     });
-    // Sync score
-    dbr(`rooms/${code}/players/${G.myId}/score`).on('value',snap=>{
-      if(snap.val()!==null){G.myScore=snap.val()||0;}
+
+    // Sincronizar puntaje
+    dbr(`rooms/${code}/players/${G.myId}/score`).on('value', snap=>{
+      if(snap.val()!==null){ G.myScore=snap.val()||0; }
       document.getElementById('pans-pts').textContent=G.myScore+' pts';
     });
   });
 }
-let lastQIdx = -1;
+
 function playerShowQ(q,qIdx,totalQ){
-  if(qIdx===lastQIdx)return;
-  lastQIdx=qIdx;
-  stopTimer();G.myAnswered=false;
+  stopTimer();
   document.getElementById('p-qnum').textContent=`Pregunta ${qIdx+1}/${totalQ}`;
   document.getElementById('p-qtext').textContent=q.text;
   document.getElementById('p-opts').innerHTML=q.options.map((o,i)=>`
@@ -599,9 +612,10 @@ function playerShowQ(q,qIdx,totalQ){
     }
   });
 }
+
 function playerAnswer(optIdx,qIdx){
   if(G.myAnswered)return;
-  G.myAnswered=true;stopTimer();
+  G.myAnswered=true; stopTimer();
   document.querySelectorAll('#p-opts .opt').forEach(b=>b.disabled=true);
   document.querySelectorAll('#p-opts .opt')[optIdx]?.classList.add('selected');
   dbr(`rooms/${G.roomCode}/answers/${qIdx}/${G.myId}`).set({option:optIdx,timeLeft:G.timerLeft});
