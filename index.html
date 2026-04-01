@@ -562,7 +562,7 @@ function playerJoin(){
       const r=snap.val();
       if(r.status==='question'&&typeof r.currentQ==='number'&&r.currentQ>=0){
         const q=(r.questions||[])[r.currentQ];
-        if(q&&!G.myAnswered){
+        if(q && r.currentQ !== lastQIdx){
           G.myAnswered=false;
           G.timePerQ=r.timePerQ||10;
           playerShowQ(q,r.currentQ,r.totalQ||1);
