@@ -195,7 +195,6 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
 <div id="s-landing" class="screen active">
   <div class="logo"><img src="https://www.satoshitango.com/img/logo-invert.svg" alt="Satoshi Tango"/></div>
   <div class="sub">Trivia cripto en vivo</div>
-  <div id="fb-status">⏳ Iniciando Firebase…</div>
   <div class="card" style="max-width:400px;text-align:center;">
     <div style="font-size:2.8rem;margin-bottom:10px;">🏆</div>
     <div class="btn-group" style="flex-direction:column;">
@@ -203,7 +202,7 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
       <button class="btn btn-outline btn-full" onclick="show('s-join')">🙋 Unirse a partida</button>
     </div>
   </div>
-  <button class="btn btn-sm btn-outline" style="margin-top:6px;" onclick="openSetup()">⚙️ Configurar Firebase</button>
+  <button class="btn btn-sm btn-outline" style="margin-top:10px;width:40px;height:40px;padding:0;border-radius:50%;font-size:1.1rem;" onclick="openSetup()" title="Configuración">⚙️</button>
 </div>
 
 <!-- HOST SETUP -->
@@ -363,7 +362,8 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
 <!-- MODAL FIREBASE -->
 <div class="overlay" id="modal-fb">
   <div class="modal">
-    <h3>⚙️ Configurar Firebase</h3>
+    <h3>⚙️ Configuración</h3>
+    <div id="fb-status" style="font-size:.82rem;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.05);margin-bottom:14px;">⏳ Iniciando Firebase…</div>
     <div class="info">Pegá tu Firebase Config en formato JSON. Asegurate de incluir <strong style="color:var(--teal);">databaseURL</strong>.</div>
     <label style="margin-top:12px;">Firebase Config JSON</label>
     <textarea id="fb-input" rows="9" placeholder='{"apiKey":"...","databaseURL":"https://...firebaseio.com","projectId":"..."}'></textarea>
@@ -651,6 +651,29 @@ function playerFinal(players){
 initFirebase();
 const urlRoom=new URLSearchParams(window.location.search).get('room');
 if(urlRoom){document.getElementById('j-code').value=urlRoom;show('s-join');}
+
+// ── FONDO REACTIVO ──
+(function(){
+  let tx=50,ty=50,cx=50,cy=50;
+  function applyBg(){
+    document.body.style.background=`
+      radial-gradient(ellipse 80% 60% at ${cx+10}% ${cy-10}%, rgba(17,56,215,0.55) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 70% at ${100-cx}% ${100-cy}%, rgba(10,42,94,0.65) 0%, transparent 60%),
+      radial-gradient(ellipse 90% 80% at ${cx-10}% ${cy+20}%, rgba(15,30,74,0.7) 0%, transparent 60%),
+      linear-gradient(160deg,#0d1533 0%,#0a1840 50%,#0d1533 100%)`;
+  }
+  function lerp(a,b,t){return a+(b-a)*t;}
+  function tick(){cx=lerp(cx,tx,0.04);cy=lerp(cy,ty,0.04);applyBg();requestAnimationFrame(tick);}
+  // Mouse (desktop)
+  window.addEventListener('mousemove',e=>{tx=(e.clientX/window.innerWidth)*100;ty=(e.clientY/window.innerHeight)*100;});
+  // Giroscopio (mobile)
+  window.addEventListener('deviceorientation',e=>{
+    if(e.gamma===null)return;
+    tx=Math.min(100,Math.max(0,50+(e.gamma/45)*40));
+    ty=Math.min(100,Math.max(0,50+(e.beta/90)*40));
+  },{passive:true});
+  tick();
+})();
 </script>
 </body>
 </html>
