@@ -51,10 +51,12 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
 .opt.selected{border-color:var(--blue);background:var(--blue);}
 .opt.correct{border-color:var(--ok)!important;background:#1a3d2a!important;color:var(--ok)!important;}
 .opt.wrong{border-color:var(--danger)!important;background:#3d1a22!important;color:var(--danger)!important;}
-.opt:nth-child(1){border-left:5px solid #e94560;}
-.opt:nth-child(2){border-left:5px solid #1138d7;}
-.opt:nth-child(3){border-left:5px solid #ffb74d;}
-.opt:nth-child(4){border-left:5px solid #51ebc0;}
+.popt:nth-child(1){border-left:5px solid #e94560;}
+.popt:nth-child(2){border-left:5px solid #1138d7;}
+.popt:nth-child(3){border-left:5px solid #ffb74d;}
+.popt:nth-child(4){border-left:5px solid #51ebc0;}
+.popt.selected{border-color:var(--blue)!important;background:var(--blue)!important;}
+.popt.correct,.popt.wrong{border-left-width:2px!important;}
 .slist{width:100%;max-width:560px;}
 .sitem{display:flex;align-items:center;gap:11px;background:var(--card);border-radius:10px;padding:12px 15px;margin-bottom:7px;}
 .srank{font-size:1.1rem;font-weight:900;width:30px;text-align:center;}
@@ -303,11 +305,17 @@ label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:
 const G = {
   db:null, role:null, roomCode:null,
   myId:null, myName:null, myScore:0, myAnswered:false,
+  myStreak:0, myLastAnswer:null,
   questions:[], players:{},
   currentQ:0, timePerQ:10, ptsPerQ:1000, speedBonus:true,
   timerInterval:null, timerLeft:0,
   editingIdx:null, edOpts:[], edCorrect:0,
 };
+
+const CORRECT_MSGS = [
+  '¡Vamos! 🎯','¡Correcto! 💪','¡Exacto! ⚡','¡Muy bien! 👏',
+  '¡Genial! 🚀','¡Excelente! 🌟','¡Crack! 😎','¡Eso es! ✨'
+];
 
 const DEFAULT_QS = [
   {text:"¿En qué año se minó el bloque génesis de Bitcoin?",options:["2007","2009","2010","2011"],correct:1,points:1000},
@@ -601,7 +609,7 @@ function playerJoin(){
   if(!G.db){alert('Firebase no conectado.');return;}
   G.roomCode=code; G.myName=name;
   G.myId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-  G.myScore=0; G.myAnswered=false; G.myLastAnswer=null; lastQIdx=-1;
+  G.myScore=0; G.myAnswered=false; G.myLastAnswer=null; G.myStreak=0; lastQIdx=-1;
 
   dbr(`rooms/${code}`).once('value').then(snap=>{
     if(!snap.exists()){alert('Sala no encontrada.');return;}
@@ -649,7 +657,10 @@ function playerJoin(){
             ? `¡Correcto! +${G.myScore} pts`
             : `Incorrecto — elegiste: "${q.options[myAns] ?? '—'}"`;
 
-          // Mostrar cuál era la correcta si se equivocó
+          const q = (r.questions||[])[r.currentQ];
+          if(!q) return;
+          beep(isCorrect ? 'correct' : 'wrong');
+          // Mostrar correcta si se equivocó
           const revealEl = document.getElementById('pans-reveal');
           if(!isCorrect){
             revealEl.style.display='block';
@@ -679,7 +690,7 @@ function playerShowQ(q,qIdx,totalQ){
   document.getElementById('p-qnum').textContent=`Pregunta ${qIdx+1}/${totalQ}`;
   document.getElementById('p-qtext').textContent=q.text;
   document.getElementById('p-opts').innerHTML=q.options.map((o,i)=>`
-    <button class="opt" onclick="playerAnswer(${i},${qIdx})">${o}</button>`).join('');
+    <button class="opt popt" onclick="playerAnswer(${i},${qIdx})">${o}</button>`).join('');
   show('s-pq');
   startTimer(G.timePerQ,'p-tnum','p-tbar',()=>{
     if(!G.myAnswered){
