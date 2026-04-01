@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SatoshiQuiz</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+:root{--bg:#161d3d;--blue:#1138d7;--teal:#51ebc0;--white:#fff;--card:#1e2a5e;--danger:#e94560;--warn:#ffb74d;--ok:#4caf50;--r:12px;--font:'Segoe UI',system-ui,sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--white);font-family:var(--font);min-height:100vh;}
+.screen{display:none;min-height:100vh;padding:20px;flex-direction:column;align-items:center;}
+.screen.active{display:flex;}
+.logo{font-size:1.6rem;font-weight:900;color:var(--teal);letter-spacing:-1px;margin-bottom:4px;}
+.logo span{color:var(--white);}
+.sub{font-size:.82rem;color:#8896cc;margin-bottom:22px;}
+.card{background:var(--card);border-radius:var(--r);padding:20px;width:100%;max-width:560px;margin-bottom:14px;}
+.card h2{font-size:1rem;margin-bottom:14px;color:var(--teal);}
+input,textarea,select{width:100%;padding:10px 14px;border-radius:8px;background:#0f163a;border:1.5px solid #2a3a7c;color:var(--white);font-size:.95rem;font-family:var(--font);outline:none;transition:border .2s;}
+input:focus,textarea:focus{border-color:var(--teal);}
+textarea{resize:vertical;min-height:56px;}
+label{font-size:.78rem;color:#8896cc;display:block;margin-bottom:3px;margin-top:10px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 20px;border-radius:8px;border:none;font-size:.93rem;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;font-family:var(--font);}
+.btn:hover{opacity:.88;transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn:disabled{opacity:.4;cursor:default;transform:none;}
+.btn-primary{background:var(--blue);color:var(--white);}
+.btn-teal{background:var(--teal);color:var(--bg);}
+.btn-danger{background:var(--danger);color:var(--white);}
+.btn-outline{background:transparent;border:2px solid var(--teal);color:var(--teal);}
+.btn-sm{padding:6px 13px;font-size:.8rem;}
+.btn-full{width:100%;max-width:560px;}
+.btn-group{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;width:100%;max-width:560px;}
+.room-code{font-size:3rem;font-weight:900;letter-spacing:8px;color:var(--teal);text-align:center;padding:14px 0;}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:7px;margin-top:10px;}
+.pchip{background:var(--blue);border-radius:20px;padding:6px 12px;font-size:.8rem;text-align:center;font-weight:600;animation:popin .25s ease;}
+@keyframes popin{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+.timer-wrap{width:100%;max-width:560px;margin-bottom:14px;}
+.timer-num{text-align:center;font-size:2.2rem;font-weight:900;color:var(--teal);margin-bottom:5px;transition:color .3s;}
+.timer-bg{background:#0f163a;border-radius:20px;height:10px;overflow:hidden;}
+.timer-bar{height:100%;background:var(--teal);border-radius:20px;transition:width .9s linear,background .3s;}
+.q-num{font-size:.78rem;color:#8896cc;text-align:center;margin-bottom:6px;}
+.q-text{font-size:1.2rem;font-weight:700;text-align:center;margin-bottom:20px;line-height:1.4;max-width:560px;}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:11px;width:100%;max-width:560px;}
+.opt{background:var(--card);border:2px solid transparent;border-radius:var(--r);padding:16px 12px;font-size:1rem;font-weight:600;color:var(--white);cursor:pointer;transition:all .15s;text-align:center;font-family:var(--font);}
+.opt:hover:not(:disabled){border-color:var(--teal);transform:translateY(-2px);}
+.opt:disabled{cursor:default;}
+.opt.selected{border-color:var(--blue);background:var(--blue);}
+.opt.correct{border-color:var(--ok)!important;background:#1a3d2a!important;color:var(--ok)!important;}
+.opt.wrong{border-color:var(--danger)!important;background:#3d1a22!important;color:var(--danger)!important;}
+.opt:nth-child(1){border-left:5px solid #e94560;}
+.opt:nth-child(2){border-left:5px solid #1138d7;}
+.opt:nth-child(3){border-left:5px solid #ffb74d;}
+.opt:nth-child(4){border-left:5px solid #51ebc0;}
+.slist{width:100%;max-width:560px;}
+.sitem{display:flex;align-items:center;gap:11px;background:var(--card);border-radius:10px;padding:12px 15px;margin-bottom:7px;}
+.srank{font-size:1.1rem;font-weight:900;width:30px;text-align:center;}
+.sname{flex:1;font-weight:600;}
+.spts{font-size:1rem;font-weight:800;color:var(--teal);}
+.gold{color:#ffd700;}.silver{color:#c0c0c0;}.bronze{color:#cd7f32;}
+.qitem{background:#0f163a;border-radius:8px;padding:12px;border:1.5px solid #2a3a7c;margin-bottom:8px;}
+.qitem-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.qitem-title{font-size:.86rem;font-weight:600;}
+.qopts{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px;}
+.qopt{font-size:.75rem;color:#a0aec0;display:flex;align-items:center;gap:5px;}
+.qopt.correct{color:var(--teal);font-weight:700;}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;align-items:center;justify-content:center;padding:16px;}
+.overlay.open{display:flex;}
+.modal{background:var(--card);border-radius:var(--r);padding:24px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;}
+.modal h3{color:var(--teal);margin-bottom:16px;}
+.tabs{display:flex;gap:4px;margin-bottom:18px;width:100%;max-width:560px;}
+.tab{flex:1;padding:9px;border-radius:8px;border:none;background:#0f163a;color:#8896cc;font-weight:600;cursor:pointer;font-size:.83rem;transition:all .15s;font-family:var(--font);}
+.tab.active{background:var(--blue);color:var(--white);}
+.anim{font-size:2.5rem;animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.pts-big{font-size:2rem;font-weight:900;color:var(--teal);text-align:center;}
+.nick-big{font-size:1.3rem;font-weight:800;text-align:center;color:var(--teal);}
+.feedback{font-size:1.05rem;text-align:center;font-weight:600;margin-top:8px;}
+.info{font-size:.8rem;color:#8896cc;line-height:1.6;}
+#fb-status{font-size:.82rem;text-align:center;min-height:18px;margin-bottom:6px;}
+@media(max-width:480px){.opts{grid-template-columns:1fr;}.room-code{font-size:2.1rem;}}
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="s-landing" class="screen active">
+  <div class="logo">Satoshi<span>Quiz</span></div>
+  <div class="sub">Trivia cripto en vivo</div>
+  <div id="fb-status">⏳ Iniciando Firebase…</div>
+  <div class="card" style="max-width:400px;text-align:center;">
+    <div style="font-size:2.8rem;margin-bottom:10px;">🏆</div>
+    <div class="btn-group" style="flex-direction:column;">
+      <button class="btn btn-teal btn-full" onclick="goHost()">🎮 Crear partida (Host)</button>
+      <button class="btn btn-outline btn-full" onclick="show('s-join')">🙋 Unirse a partida</button>
+    </div>
+  </div>
+  <button class="btn btn-sm btn-outline" style="margin-top:6px;" onclick="openSetup()">⚙️ Configurar Firebase</button>
+</div>
+
+<!-- HOST SETUP -->
+<div id="s-setup" class="screen">
+  <div class="logo">Satoshi<span>Quiz</span> <span style="font-size:.72rem;color:#8896cc;font-weight:400;">Host</span></div>
+  <div class="tabs">
+    <button class="tab active" id="tab-q-btn" onclick="switchTab('q')">📝 Preguntas</button>
+    <button class="tab" id="tab-s-btn" onclick="switchTab('s')">⚙️ Ajustes</button>
+  </div>
+  <div id="tab-q" style="width:100%;max-width:560px;">
+    <div id="qlist"></div>
+    <button class="btn btn-outline btn-full" onclick="openQEditor(null)">+ Agregar pregunta</button>
+  </div>
+  <div id="tab-s" style="display:none;width:100%;max-width:560px;">
+    <div class="card">
+      <h2>⚙️ Ajustes</h2>
+      <label>Nombre del quiz</label><input id="cfg-name" value="SatoshiQuiz — Edición Cripto"/>
+      <label>Segundos por pregunta</label><input id="cfg-time" type="number" value="10" min="5" max="120"/>
+      <label>Puntos por respuesta correcta</label><input id="cfg-pts" type="number" value="1000" min="100" step="100"/>
+      <label>Bonus por velocidad</label>
+      <select id="cfg-speed"><option value="1">Sí — más rápido más puntos</option><option value="0">No — puntaje fijo</option></select>
+    </div>
+  </div>
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="show('s-landing')">← Volver</button>
+    <button class="btn btn-teal" style="flex:1;" onclick="createRoom()">🚀 Crear sala →</button>
+  </div>
+</div>
+
+<!-- HOST LOBBY -->
+<div id="s-lobby" class="screen">
+  <div class="logo">Satoshi<span>Quiz</span></div>
+  <div class="sub">Compartí el código o escaneá el QR</div>
+  <div class="card" style="max-width:420px;text-align:center;">
+    <div style="font-size:.8rem;color:#8896cc;margin-bottom:2px;">Código de sala</div>
+    <div class="room-code" id="disp-code">------</div>
+    <div id="qr-wrap" style="display:flex;justify-content:center;margin:12px 0;"></div>
+    <div style="font-size:.7rem;color:#8896cc;word-break:break-all;" id="disp-url"></div>
+  </div>
+  <div class="card" style="max-width:420px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <h2 style="margin:0;">Jugadores <span id="pcount" style="color:var(--teal);">(0)</span></h2>
+      <span style="background:var(--warn);color:#333;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;">Esperando…</span>
+    </div>
+    <div class="pgrid" id="pgrid"></div>
+  </div>
+  <div class="btn-group" style="max-width:420px;">
+    <button class="btn btn-outline" onclick="show('s-setup')">← Editar</button>
+    <button class="btn btn-teal" style="flex:1;" onclick="hostStartGame()">▶ Empezar</button>
+  </div>
+</div>
+
+<!-- HOST QUESTION -->
+<div id="s-hq" class="screen">
+  <div class="logo" style="margin-bottom:2px;">Satoshi<span>Quiz</span></div>
+  <div class="timer-wrap">
+    <div class="timer-num" id="h-tnum">10</div>
+    <div class="timer-bg"><div class="timer-bar" id="h-tbar" style="width:100%"></div></div>
+  </div>
+  <div class="q-num" id="h-qnum">Pregunta 1/5</div>
+  <div class="q-text" id="h-qtext"></div>
+  <div class="opts" id="h-opts" style="pointer-events:none;"></div>
+  <div class="card" style="max-width:560px;margin-top:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="color:#8896cc;font-size:.85rem;">Respondieron</span>
+      <span id="h-anscount" style="font-weight:700;color:var(--teal);">0/0</span>
+    </div>
+  </div>
+  <button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="hostReveal()">Revelar respuesta</button>
+</div>
+
+<!-- HOST REVEAL -->
+<div id="s-hrev" class="screen">
+  <div class="logo" style="margin-bottom:2px;">Satoshi<span>Quiz</span></div>
+  <div class="q-num" id="hrev-qnum"></div>
+  <div class="q-text" id="hrev-qtext"></div>
+  <div class="opts" id="hrev-opts" style="pointer-events:none;"></div>
+  <div class="slist" id="hrev-score" style="margin-top:16px;"></div>
+  <button class="btn btn-teal btn-full" style="margin-top:14px;" id="btn-next" onclick="hostNext()">Siguiente →</button>
+</div>
+
+<!-- HOST FINAL -->
+<div id="s-hfinal" class="screen">
+  <div class="logo">Satoshi<span>Quiz</span></div>
+  <div class="sub">🏆 Resultados finales</div>
+  <div class="slist" id="hfinal-score"></div>
+  <div class="btn-group">
+    <button class="btn btn-outline btn-full" onclick="exportCSV()">📥 Exportar CSV</button>
+    <button class="btn btn-teal btn-full" onclick="location.reload()">🔄 Nueva partida</button>
+  </div>
+</div>
+
+<!-- PLAYER JOIN -->
+<div id="s-join" class="screen">
+  <div class="logo">Satoshi<span>Quiz</span></div>
+  <div class="sub">Ingresá el código de sala</div>
+  <div style="display:flex;flex-direction:column;gap:11px;width:100%;max-width:360px;">
+    <input id="j-code" placeholder="Código (ej: ABC123)" maxlength="8"
+      style="font-size:1.4rem;text-align:center;letter-spacing:4px;text-transform:uppercase;"
+      oninput="this.value=this.value.toUpperCase()"/>
+    <input id="j-name" placeholder="Tu nombre o nickname" maxlength="20"/>
+    <button class="btn btn-teal btn-full" onclick="playerJoin()">🙋 Entrar al juego</button>
+    <button class="btn btn-outline btn-full" onclick="show('s-landing')">← Volver</button>
+  </div>
+</div>
+
+<!-- PLAYER WAIT -->
+<div id="s-pwait" class="screen">
+  <div class="logo">Satoshi<span>Quiz</span></div>
+  <div class="anim" style="margin-top:10px;">⏳</div>
+  <div class="nick-big" id="pw-name" style="margin-top:14px;"></div>
+  <div style="color:#8896cc;margin-top:6px;font-size:.88rem;">Esperando que el host empiece…</div>
+  <div class="card" style="max-width:340px;text-align:center;margin-top:16px;">
+    <div style="font-size:.78rem;color:#8896cc;">Sala</div>
+    <div style="font-size:1.8rem;font-weight:900;color:var(--teal);letter-spacing:4px;" id="pw-room"></div>
+  </div>
+</div>
+
+<!-- PLAYER QUESTION -->
+<div id="s-pq" class="screen">
+  <div class="timer-wrap">
+    <div class="timer-num" id="p-tnum">10</div>
+    <div class="timer-bg"><div class="timer-bar" id="p-tbar" style="width:100%"></div></div>
+  </div>
+  <div class="q-num" id="p-qnum"></div>
+  <div class="q-text" id="p-qtext"></div>
+  <div class="opts" id="p-opts"></div>
+</div>
+
+<!-- PLAYER ANSWERED -->
+<div id="s-pans" class="screen">
+  <div style="font-size:4rem;" id="pans-icon">✅</div>
+  <div class="feedback" id="pans-msg">¡Respuesta enviada!</div>
+  <div style="color:#8896cc;margin-top:6px;font-size:.83rem;">Esperando al host…</div>
+  <div class="pts-big" id="pans-pts" style="margin-top:18px;">0 pts</div>
+</div>
+
+<!-- PLAYER FINAL -->
+<div id="s-pfinal" class="screen">
+  <div class="logo">Satoshi<span>Quiz</span></div>
+  <div style="font-size:3rem;margin-bottom:6px;" id="pf-icon">🎉</div>
+  <div class="nick-big" id="pf-name"></div>
+  <div class="pts-big" style="margin-top:12px;" id="pf-pts"></div>
+  <div style="color:#8896cc;margin-top:6px;font-size:.88rem;" id="pf-rank"></div>
+  <div class="slist" id="pf-board" style="margin-top:16px;max-width:400px;"></div>
+  <button class="btn btn-outline" style="margin-top:16px;" onclick="location.reload()">🔄 Volver al inicio</button>
+</div>
+
+<!-- MODAL FIREBASE -->
+<div class="overlay" id="modal-fb">
+  <div class="modal">
+    <h3>⚙️ Configurar Firebase</h3>
+    <div class="info">
+      Pegá tu Firebase Config en formato JSON (con comillas en las claves).<br>
+      Asegurate de incluir <strong style="color:var(--teal);">databaseURL</strong>.<br><br>
+      Ejemplo de databaseURL:<br>
+      <code style="color:var(--teal);font-size:.78rem;">https://TU-PROYECTO-default-rtdb.firebaseio.com</code>
+    </div>
+    <label style="margin-top:12px;">Firebase Config JSON</label>
+    <textarea id="fb-input" rows="9" placeholder='{"apiKey":"...","databaseURL":"https://satoshiquiz-default-rtdb.firebaseio.com","projectId":"..."}'></textarea>
+    <div id="fb-modal-msg" style="font-size:.78rem;margin-top:6px;"></div>
+    <div class="btn-group" style="margin-top:14px;">
+      <button class="btn btn-outline" onclick="closeSetup()">Cerrar</button>
+      <button class="btn btn-teal" onclick="saveFirebase()">💾 Guardar y conectar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL Q EDITOR -->
+<div class="overlay" id="modal-qed">
+  <div class="modal">
+    <h3 id="qed-title">✏️ Pregunta</h3>
+    <label>Texto de la pregunta</label>
+    <textarea id="qed-q" rows="2" placeholder="¿Cuándo se minó el bloque génesis de Bitcoin?"></textarea>
+    <label>Opciones <span style="color:#8896cc;">(marcá la correcta)</span></label>
+    <div id="qed-opts"></div>
+    <button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="addEdOpt()">+ Opción</button>
+    <label>Puntos (vacío = global)</label>
+    <input id="qed-pts" type="number" placeholder="1000"/>
+    <div class="btn-group" style="margin-top:18px;">
+      <button class="btn btn-outline" onclick="closeQEditor()">Cancelar</button>
+      <button class="btn btn-teal" onclick="saveQ()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const G = {
+  db:null, role:null, roomCode:null,
+  myId:null, myName:null, myScore:0, myAnswered:false,
+  questions:[], players:{},
+  currentQ:0, timePerQ:10, ptsPerQ:1000, speedBonus:true,
+  timerInterval:null, timerLeft:0,
+  editingIdx:null, edOpts:[], edCorrect:0,
+};
+
+const DEFAULT_QS = [
+  {text:"¿En qué año se minó el bloque génesis de Bitcoin?",options:["2007","2009","2010","2011"],correct:1,points:1000},
+  {text:"¿Cuál es el CEO y cofundador de Satoshi Tango?",options:["Nicolás Loterspil","Vitalik Buterin","Matías Bari","Mariano Craiem"],correct:2,points:1000},
+  {text:"¿Qué significa HODL en cripto?",options:["Vender rápido","Retener a largo plazo","Un token DeFi","Un protocolo Layer 2"],correct:1,points:1000},
+  {text:"¿Cuánto cashback en XAUT al pagar con USDT en Brasil vía Pix en Satoshi Tango?",options:["5%","7%","9%","12%"],correct:2,points:1000},
+  {text:"¿Cuándo ocurrió el primer halving de Bitcoin?",options:["2010","2012","2014","2016"],correct:1,points:1000},
+  {text:"¿Cada cuántos bloques ocurre el halving de Bitcoin?",options:["100.000","210.000","420.000","500.000"],correct:1,points:1000},
+  {text:"¿Qué tipo de activo es USDT?",options:["Memecoin","Stablecoin","Token de gobernanza","NFT"],correct:1,points:1000},
+];
+
+// ── FIREBASE ──
+function initFirebase() {
+  const raw = localStorage.getItem('sq_fb');
+  const el = document.getElementById('fb-status');
+  if (!raw) { el.textContent='⚠️ Firebase no configurado — tocá ⚙️'; el.style.color='var(--warn)'; return; }
+  try {
+    const cfg = JSON.parse(raw);
+    if (!cfg.databaseURL) throw new Error('Falta databaseURL');
+    if (!firebase.apps.length) firebase.initializeApp(cfg);
+    G.db = firebase.database();
+    el.textContent='🟢 Firebase conectado'; el.style.color='var(--teal)';
+  } catch(e) {
+    el.textContent='🔴 Error Firebase: '+e.message; el.style.color='var(--danger)';
+  }
+}
+
+function openSetup() {
+  const s = localStorage.getItem('sq_fb');
+  if (s) document.getElementById('fb-input').value = s;
+  document.getElementById('modal-fb').classList.add('open');
+}
+function closeSetup() { document.getElementById('modal-fb').classList.remove('open'); }
+function saveFirebase() {
+  const raw = document.getElementById('fb-input').value.trim();
+  const msg = document.getElementById('fb-modal-msg');
+  try {
+    const cfg = JSON.parse(raw);
+    if (!cfg.databaseURL) throw new Error('Falta databaseURL — agregala manualmente');
+    localStorage.setItem('sq_fb', raw);
+    msg.style.color='var(--teal)'; msg.textContent='✅ Guardado. Recargando…';
+    setTimeout(()=>location.reload(),1000);
+  } catch(e) {
+    msg.style.color='var(--danger)'; msg.textContent='❌ '+e.message;
+  }
+}
+
+// ── HELPERS ──
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function genCode() {
+  return Array.from({length:6},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+}
+function dbr(path) { return G.db.ref(path); }
+
+// ── TIMER ──
+function startTimer(secs, numId, barId, onEnd) {
+  clearInterval(G.timerInterval);
+  G.timerLeft = secs;
+  const n=document.getElementById(numId), b=document.getElementById(barId);
+  n.textContent=secs; b.style.width='100%'; b.style.background='var(--teal)'; n.style.color='var(--teal)';
+  G.timerInterval = setInterval(()=>{
+    G.timerLeft--;
+    n.textContent=G.timerLeft;
+    const pct=(G.timerLeft/secs)*100;
+    b.style.width=pct+'%';
+    if(pct<30){b.style.background='var(--danger)';n.style.color='var(--danger)';}
+    else if(pct<60){b.style.background='var(--warn)';n.style.color='var(--warn)';}
+    if(G.timerLeft<=0){clearInterval(G.timerInterval);onEnd();}
+  },1000);
+}
+function stopTimer(){clearInterval(G.timerInterval);}
+
+// ── Q EDITOR ──
+function renderQList(){
+  document.getElementById('qlist').innerHTML=G.questions.map((q,i)=>`
+    <div class="qitem">
+      <div class="qitem-hdr">
+        <span class="qitem-title">${i+1}. ${q.text}</span>
+        <div style="display:flex;gap:5px;flex-shrink:0;">
+          <button class="btn btn-outline btn-sm" onclick="openQEditor(${i})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="delQ(${i})">🗑</button>
+        </div>
+      </div>
+      <div class="qopts">${q.options.map((o,j)=>`
+        <div class="qopt ${j===q.correct?'correct':''}"><span class="dot"></span>${o}</div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+function delQ(i){G.questions.splice(i,1);renderQList();}
+function openQEditor(idx){
+  G.editingIdx=idx;
+  if(idx!==null){const q=G.questions[idx];G.edOpts=[...q.options];G.edCorrect=q.correct;
+    document.getElementById('qed-q').value=q.text;document.getElementById('qed-pts').value=q.points||'';
+    document.getElementById('qed-title').textContent=`✏️ Editar pregunta ${idx+1}`;
+  }else{G.edOpts=['','','',''];G.edCorrect=0;
+    document.getElementById('qed-q').value='';document.getElementById('qed-pts').value='';
+    document.getElementById('qed-title').textContent='✏️ Nueva pregunta';
+  }
+  renderEdOpts();document.getElementById('modal-qed').classList.add('open');
+}
+function closeQEditor(){document.getElementById('modal-qed').classList.remove('open');}
+function renderEdOpts(){
+  document.getElementById('qed-opts').innerHTML=G.edOpts.map((o,i)=>`
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;">
+      <input type="radio" name="cor" value="${i}" ${i===G.edCorrect?'checked':''}
+        onchange="G.edCorrect=${i}" style="width:auto;flex-shrink:0;accent-color:var(--teal);"/>
+      <input type="text" value="${o}" placeholder="Opción ${i+1}"
+        oninput="G.edOpts[${i}]=this.value" style="flex:1;"/>
+      ${G.edOpts.length>2?`<button class="btn btn-danger btn-sm" onclick="remEdOpt(${i})">✕</button>`:''}
+    </div>`).join('');
+}
+function addEdOpt(){if(G.edOpts.length<6){G.edOpts.push('');renderEdOpts();}}
+function remEdOpt(i){G.edOpts.splice(i,1);if(G.edCorrect>=G.edOpts.length)G.edCorrect=0;renderEdOpts();}
+function saveQ(){
+  const text=document.getElementById('qed-q').value.trim();
+  if(!text){alert('Escribí la pregunta');return;}
+  const opts=G.edOpts.map(o=>o.trim()||'???');
+  const pts=parseInt(document.getElementById('qed-pts').value)||G.ptsPerQ;
+  const q={text,options:opts,correct:G.edCorrect,points:pts};
+  if(G.editingIdx===null)G.questions.push(q);else G.questions[G.editingIdx]=q;
+  renderQList();closeQEditor();
+}
+function switchTab(t){
+  document.getElementById('tab-q').style.display=t==='q'?'block':'none';
+  document.getElementById('tab-s').style.display=t==='s'?'block':'none';
+  document.getElementById('tab-q-btn').classList.toggle('active',t==='q');
+  document.getElementById('tab-s-btn').classList.toggle('active',t==='s');
+}
+
+// ── HOST ──
+function goHost(){
+  G.role='host';G.questions=JSON.parse(JSON.stringify(DEFAULT_QS));renderQList();show('s-setup');
+}
+function createRoom(){
+  if(!G.questions.length){alert('Agregá al menos una pregunta');return;}
+  if(!G.db){alert('Firebase no conectado. Configuralo primero (botón ⚙️)');return;}
+  G.timePerQ=parseInt(document.getElementById('cfg-time').value)||10;
+  G.ptsPerQ=parseInt(document.getElementById('cfg-pts').value)||1000;
+  G.speedBonus=document.getElementById('cfg-speed').value==='1';
+  G.roomCode=genCode();G.players={};G.currentQ=0;
+
+  dbr(`rooms/${G.roomCode}`).set({
+    status:'lobby',currentQ:-1,
+    timePerQ:G.timePerQ,totalQ:G.questions.length,
+    questions:G.questions,
+  });
+
+  document.getElementById('qr-wrap').innerHTML='';
+  const url=window.location.href.split('?')[0]+'?room='+G.roomCode;
+  document.getElementById('disp-code').textContent=G.roomCode;
+  document.getElementById('disp-url').textContent=url;
+  try{new QRCode(document.getElementById('qr-wrap'),{text:url,width:130,height:130,colorDark:'#51ebc0',colorLight:'#1e2a5e',correctLevel:QRCode.CorrectLevel.M});}catch(e){}
+
+  dbr(`rooms/${G.roomCode}/players`).on('value',snap=>{
+    G.players=snap.val()||{};
+    const keys=Object.keys(G.players);
+    document.getElementById('pcount').textContent=`(${keys.length})`;
+    document.getElementById('pgrid').innerHTML=keys.map(k=>`<div class="pchip">${G.players[k].name}</div>`).join('');
+  });
+  show('s-lobby');
+}
+function hostStartGame(){
+  if(!Object.keys(G.players).length){alert('Esperá que se una al menos un jugador');return;}
+  G.currentQ=0;hostShowQ();
+}
+function hostShowQ(){
+  const q=G.questions[G.currentQ];
+  dbr(`rooms/${G.roomCode}/answers/${G.currentQ}`).remove();
+  dbr(`rooms/${G.roomCode}`).update({status:'question',currentQ:G.currentQ,revealAnswer:false});
+  document.getElementById('h-qnum').textContent=`Pregunta ${G.currentQ+1}/${G.questions.length}`;
+  document.getElementById('h-qtext').textContent=q.text;
+  document.getElementById('h-opts').innerHTML=q.options.map(o=>`<div class="opt">${o}</div>`).join('');
+  document.getElementById('h-anscount').textContent=`0/${Object.keys(G.players).length}`;
+  show('s-hq');
+  dbr(`rooms/${G.roomCode}/answers/${G.currentQ}`).on('value',snap=>{
+    const ans=snap.val()||{};
+    const cnt=Object.keys(ans).length,tot=Object.keys(G.players).length;
+    document.getElementById('h-anscount').textContent=`${cnt}/${tot}`;
+    if(cnt>=tot&&tot>0){stopTimer();hostReveal();}
+  });
+  startTimer(G.timePerQ,'h-tnum','h-tbar',()=>hostReveal());
+}
+function hostReveal(){
+  stopTimer();
+  dbr(`rooms/${G.roomCode}/answers/${G.currentQ}`).off();
+  const q=G.questions[G.currentQ];
+  dbr(`rooms/${G.roomCode}`).update({status:'reveal',revealAnswer:true,correctOption:q.correct});
+  dbr(`rooms/${G.roomCode}/answers/${G.currentQ}`).once('value').then(snap=>{
+    const answers=snap.val()||{};
+    const updates={};
+    for(const [pid,ans] of Object.entries(answers)){
+      if(!G.players[pid])continue;
+      if(ans.option===q.correct){
+        const bonus=G.speedBonus?Math.round((ans.timeLeft/G.timePerQ)*(q.points*0.5)):0;
+        G.players[pid].score=(G.players[pid].score||0)+q.points+bonus;
+        updates[`rooms/${G.roomCode}/players/${pid}/score`]=G.players[pid].score;
+      }
+    }
+    if(Object.keys(updates).length)G.db.ref().update(updates);
+    document.getElementById('hrev-qnum').textContent=`Pregunta ${G.currentQ+1}/${G.questions.length}`;
+    document.getElementById('hrev-qtext').textContent=q.text;
+    document.getElementById('hrev-opts').innerHTML=q.options.map((o,i)=>`
+      <div class="opt ${i===q.correct?'correct':''}" style="pointer-events:none;">${o}${i===q.correct?' ✓':''}</div>`).join('');
+    const sorted=Object.values(G.players).sort((a,b)=>b.score-a.score).slice(0,5);
+    document.getElementById('hrev-score').innerHTML=sorted.map((p,i)=>`
+      <div class="sitem">
+        <div class="srank ${['gold','silver','bronze'][i]||''}">${['🥇','🥈','🥉'][i]||'#'+(i+1)}</div>
+        <div class="sname">${p.name}</div><div class="spts">${p.score||0} pts</div>
+      </div>`).join('');
+    document.getElementById('btn-next').textContent=G.currentQ>=G.questions.length-1?'🏆 Ver resultados finales':'Siguiente pregunta →';
+    show('s-hrev');
+  });
+}
+function hostNext(){
+  G.currentQ++;
+  if(G.currentQ>=G.questions.length){
+    dbr(`rooms/${G.roomCode}`).update({status:'final'});
+    const sorted=Object.values(G.players).sort((a,b)=>b.score-a.score);
+    document.getElementById('hfinal-score').innerHTML=sorted.map((p,i)=>`
+      <div class="sitem" style="${i===0?'border:2px solid #ffd700;':''}">
+        <div class="srank ${['gold','silver','bronze'][i]||''}">${['🥇','🥈','🥉'][i]||'#'+(i+1)}</div>
+        <div class="sname">${p.name}</div><div class="spts">${p.score||0} pts</div>
+      </div>`).join('');
+    show('s-hfinal');
+  }else{hostShowQ();}
+}
+function exportCSV(){
+  const sorted=Object.values(G.players).sort((a,b)=>b.score-a.score);
+  const csv='Posición,Nombre,Puntos\n'+sorted.map((p,i)=>`${i+1},${p.name},${p.score||0}`).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='satoshiquiz-resultados.csv';a.click();
+}
+
+// ── PLAYER ──
+function playerJoin(){
+  const code=document.getElementById('j-code').value.trim().toUpperCase();
+  const name=document.getElementById('j-name').value.trim();
+  if(!code){alert('Ingresá el código');return;}
+  if(!name){alert('Ingresá tu nombre');return;}
+  if(!G.db){alert('Firebase no conectado.');return;}
+  G.roomCode=code;G.myName=name;
+  G.myId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  G.myScore=0;G.myAnswered=false;
+  dbr(`rooms/${code}`).once('value').then(snap=>{
+    if(!snap.exists()){alert('Sala no encontrada.');return;}
+    const room=snap.val();
+    if(room.status==='final'){alert('Esta partida ya terminó.');return;}
+    G.timePerQ=room.timePerQ||10;
+    dbr(`rooms/${code}/players/${G.myId}`).set({name,score:0});
+    document.getElementById('pw-name').textContent=name;
+    document.getElementById('pw-room').textContent=code;
+    show('s-pwait');
+    // Listen game state
+    dbr(`rooms/${code}`).on('value',snap=>{
+      if(!snap.exists())return;
+      const r=snap.val();
+      if(r.status==='question'&&typeof r.currentQ==='number'&&r.currentQ>=0){
+        const q=(r.questions||[])[r.currentQ];
+        if(q&&!G.myAnswered){
+          G.myAnswered=false;
+          G.timePerQ=r.timePerQ||10;
+          playerShowQ(q,r.currentQ,r.totalQ||1);
+        }
+      }
+      if(r.status==='final'){
+        playerFinal(r.players||{});
+      }
+    });
+    // Sync score
+    dbr(`rooms/${code}/players/${G.myId}/score`).on('value',snap=>{
+      if(snap.val()!==null){G.myScore=snap.val()||0;}
+      document.getElementById('pans-pts').textContent=G.myScore+' pts';
+    });
+  });
+}
+let lastQIdx = -1;
+function playerShowQ(q,qIdx,totalQ){
+  if(qIdx===lastQIdx)return;
+  lastQIdx=qIdx;
+  stopTimer();G.myAnswered=false;
+  document.getElementById('p-qnum').textContent=`Pregunta ${qIdx+1}/${totalQ}`;
+  document.getElementById('p-qtext').textContent=q.text;
+  document.getElementById('p-opts').innerHTML=q.options.map((o,i)=>`
+    <button class="opt" onclick="playerAnswer(${i},${qIdx})">${o}</button>`).join('');
+  show('s-pq');
+  startTimer(G.timePerQ,'p-tnum','p-tbar',()=>{
+    if(!G.myAnswered){
+      G.myAnswered=true;
+      document.getElementById('pans-icon').textContent='⏰';
+      document.getElementById('pans-msg').textContent='Se acabó el tiempo';
+      document.getElementById('pans-pts').textContent=G.myScore+' pts';
+      show('s-pans');
+    }
+  });
+}
+function playerAnswer(optIdx,qIdx){
+  if(G.myAnswered)return;
+  G.myAnswered=true;stopTimer();
+  document.querySelectorAll('#p-opts .opt').forEach(b=>b.disabled=true);
+  document.querySelectorAll('#p-opts .opt')[optIdx]?.classList.add('selected');
+  dbr(`rooms/${G.roomCode}/answers/${qIdx}/${G.myId}`).set({option:optIdx,timeLeft:G.timerLeft});
+  document.getElementById('pans-icon').textContent='✅';
+  document.getElementById('pans-msg').textContent='¡Respuesta enviada!';
+  document.getElementById('pans-pts').textContent=G.myScore+' pts';
+  show('s-pans');
+}
+function playerFinal(players){
+  const sorted=Object.values(players).sort((a,b)=>b.score-a.score);
+  const rank=sorted.findIndex(p=>p.name===G.myName)+1;
+  const icons=['🥇','🥈','🥉'];
+  document.getElementById('pf-icon').textContent=icons[rank-1]||'🎉';
+  document.getElementById('pf-name').textContent=G.myName;
+  document.getElementById('pf-pts').textContent=G.myScore+' pts';
+  document.getElementById('pf-rank').textContent=`Posición #${rank} de ${sorted.length} jugadores`;
+  document.getElementById('pf-board').innerHTML=sorted.map((p,i)=>`
+    <div class="sitem" style="${p.name===G.myName?'border:2px solid var(--teal);':''}">
+      <div class="srank ${['gold','silver','bronze'][i]||''}">${icons[i]||'#'+(i+1)}</div>
+      <div class="sname">${p.name}</div><div class="spts">${p.score||0} pts</div>
+    </div>`).join('');
+  show('s-pfinal');
+}
+
+// ── BOOT ──
+initFirebase();
+const urlRoom=new URLSearchParams(window.location.search).get('room');
+if(urlRoom){document.getElementById('j-code').value=urlRoom;show('s-join');}
+</script>
+</body>
+</html>
